@@ -2,6 +2,9 @@ import clientPromise from '@/lib/mongodb';
 import { NextResponse } from 'next/server';
 import { ObjectId } from 'mongodb';
 
+// LOCALHOST:3300/API/USUARIOS/[ID]
+// GET -> BUSCA AS INFORMAÇÕES DO USUÁRIO
+// REQUER ID COMO PARÂMETRO
 export async function GET(_, { params }) {
   const { id } = params;
 
