@@ -1,43 +1,42 @@
-import clientPromise from '@/lib/mongodb';
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
+import clientPromise from '@/lib/mongodb';
+import Usuario from '@/models/Usuario';
 
-// http://localhost:3300/api/usuarios/criar-usuario
-// POST -> RECEBE NO CORPO {nome, nickname, data-nascimento, email, senha, tipo}
 export async function POST(req) {
-  const body = await req.json();
-  const { nome, email, senha, tipo } = body;
-
-  if (!nome || !email || !senha || !tipo) {
-    return NextResponse.json({ error: 'Dados incompletos' }, { status: 400 });
-  }
+  // MENSAGEM DE TESTE DEFINITIVO
+  console.log("--- EXECUTANDO O CÓDIGO CORRETO (COM BANCO DE DADOS) ---");
 
   try {
-    const client = await clientPromise;
-    const db = client.db();
-    const usuarios = db.collection('usuarios');
+    const { nome, nickname, dataNascimento, email, senha, tipo } = await req.json();
 
-    const usuarioExistente = await usuarios.findOne({ email });
+    if (!nome || !nickname || !dataNascimento || !email || !senha || !tipo) {
+      return NextResponse.json({ error: 'Todos os campos são obrigatórios' }, { status: 400 });
+    }
+
+    await clientPromise; 
+
+    const usuarioExistente = await Usuario.findOne({ $or: [{ email }, { nickname }] });
 
     if (usuarioExistente) {
-      return NextResponse.json({ error: 'Usuário já existe' }, { status: 409 });
+      return NextResponse.json({ error: 'Email ou nickname já cadastrado' }, { status: 409 });
     }
 
     const senhaCriptografada = await bcrypt.hash(senha, 10);
 
-    const novoUsuario = {
+    await Usuario.create({
       nome,
+      nickname,
+      dataNascimento,
       email,
       senha: senhaCriptografada,
       tipo,
-      dataCadastro: new Date(),
-    };
-
-    await usuarios.insertOne(novoUsuario);
+    });
 
     return NextResponse.json({ message: 'Usuário criado com sucesso!' }, { status: 201 });
+
   } catch (error) {
-    console.error('Erro ao cadastrar usuário:', error);
-    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
+    console.error('ERRO NO BLOCO DE CÓDIGO CORRETO:', error); 
+    return NextResponse.json({ error: 'Erro interno do servidor ao cadastrar' }, { status: 500 });
   }
 }

@@ -1,25 +1,22 @@
-// src/lib/mongodb.js
-import { MongoClient } from 'mongodb';
+import { MongoClient } from 'mongodb'
 
-const uri = process.env.MONGODB_URI;
-const options = {};
+// A URI está diretamente no código, ignorando o .env.local
+const uri = "mongodb+srv://mongodbatlas:zY4WvAi1jORc0gbw@cluster0.p8rzymp.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
-let client;
-let clientPromise;
+// A verificação que causava o erro foi REMOVIDA.
 
-if (!process.env.MONGODB_URI) {
-  throw new Error('Please add your Mongo URI to .env.local');
-}
+let client
+let clientPromise
 
 if (process.env.NODE_ENV === 'development') {
   if (!global._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    global._mongoClientPromise = client.connect();
+    client = new MongoClient(uri)
+    global._mongoClientPromise = client.connect()
   }
-  clientPromise = global._mongoClientPromise;
+  clientPromise = global._mongoClientPromise
 } else {
-  client = new MongoClient(uri, options);
-  clientPromise = client.connect();
+  client = new MongoClient(uri)
+  clientPromise = client.connect()
 }
 
-export default clientPromise;
+export default clientPromise
