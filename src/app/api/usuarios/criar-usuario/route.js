@@ -6,9 +6,9 @@ import bcrypt from 'bcryptjs';
 // POST -> RECEBE NO CORPO {nome, nickname, data-nascimento, email, senha, tipo}
 export async function POST(req) {
   const body = await req.json();
-  const { nome, email, senha, tipo } = body;
+  const { nome, nickname, data_nascimento, email, senha, tipo } = body;
 
-  if (!nome || !email || !senha || !tipo) {
+  if (!nome || !nickname || !data_nascimento || !email || !senha || !tipo) {
     return NextResponse.json({ error: 'Dados incompletos' }, { status: 400 });
   }
 
