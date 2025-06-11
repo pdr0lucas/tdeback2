@@ -1,86 +1,64 @@
-import clientPromise from '@/lib/mongodb';
 import { NextResponse } from 'next/server';
-import { ObjectId } from 'mongodb';
+import connectToDatabase from '@/lib/mongodb';
+import Usuario from '@/models/Usuario';
+import jwt from 'jsonwebtoken';
 
-// LOCALHOST:3300/API/USUARIOS/[ID]
-// GET -> BUSCA AS INFORMAÇÕES DO USUÁRIO
-// REQUER ID COMO PARÂMETRO
-export async function GET(_, { params }) {
+// Função para buscar um usuário
+export async function GET(request, { params }) {
+    // ... (pode manter como está, pois é uma busca pública de perfil)
+}
+
+// Função para ATUALIZAR um usuário
+export async function PUT(request, { params }) {
   const { id } = params;
-
-  if (!ObjectId.isValid(id)) {
-    return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
-  }
-
+  const token = request.headers.get('authorization')?.split(' ')[1];
+  
   try {
-    const client = await clientPromise;
-    const db = client.db();
-    const usuarios = db.collection('usuarios');
-
-    const usuario = await usuarios.findOne(
-      { _id: new ObjectId(id) },
-      { projection: { senha: 0 } }
-    );
-
-    if (!usuario) {
-      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Verifica se o ID do token é o mesmo da rota
+    if (decoded.id !== id) {
+      return NextResponse.json({ error: 'Não autorizado. Você só pode atualizar seu próprio perfil.' }, { status: 403 });
     }
 
-    return NextResponse.json(usuario);
+    const body = await request.json();
+    await connectToDatabase();
+    
+    // Evita que o usuário altere a senha ou o tipo de perfil por esta rota
+    delete body.senha;
+    delete body.tipo_perfil;
+
+    const updatedUser = await Usuario.findByIdAndUpdate(id, body, { new: true }).select('-senha');
+    if (!updatedUser) {
+      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
+    }
+    return NextResponse.json(updatedUser);
   } catch (error) {
-    return NextResponse.json({ error: 'Erro ao buscar usuário' }, { status: 500 });
+    return NextResponse.json({ error: 'Token inválido ou erro no servidor' }, { status: 401 });
   }
 }
 
-export async function PUT(req, { params }) {
-  const { id } = params;
-  const body = await req.json();
-  const { nome, email, tipo } = body;
+// Função para DELETAR um usuário (lógica similar ao PUT)
+export async function DELETE(request, { params }) {
+    const { id } = params;
+    const token = request.headers.get('authorization')?.split(' ')[1];
 
-  if (!ObjectId.isValid(id)) {
-    return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
-  }
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        
+        if (decoded.id !== id) {
+            return NextResponse.json({ error: 'Não autorizado. Você só pode deletar seu próprio perfil.' }, { status: 403 });
+        }
 
-  try {
-    const client = await clientPromise;
-    const db = client.db();
-    const usuarios = db.collection('usuarios');
+        await connectToDatabase();
+        const deletedUser = await Usuario.findByIdAndDelete(id);
 
-    const resultado = await usuarios.updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { nome, email, tipo } }
-    );
+        if (!deletedUser) {
+            return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
+        }
 
-    if (resultado.matchedCount === 0) {
-      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
+        return NextResponse.json({ message: 'Usuário deletado com sucesso' });
+    } catch (error) {
+        return NextResponse.json({ error: 'Token inválido ou erro no servidor' }, { status: 401 });
     }
-
-    return NextResponse.json({ message: 'Usuário atualizado com sucesso' });
-  } catch (error) {
-    return NextResponse.json({ error: 'Erro ao atualizar usuário' }, { status: 500 });
-  }
-}
-
-export async function DELETE(_, { params }) {
-  const { id } = params;
-
-  if (!ObjectId.isValid(id)) {
-    return NextResponse.json({ error: 'ID inválido' }, { status: 400 });
-  }
-
-  try {
-    const client = await clientPromise;
-    const db = client.db();
-    const usuarios = db.collection('usuarios');
-
-    const resultado = await usuarios.deleteOne({ _id: new ObjectId(id) });
-
-    if (resultado.deletedCount === 0) {
-      return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
-    }
-
-    return NextResponse.json({ message: 'Usuário excluído com sucesso' });
-  } catch (error) {
-    return NextResponse.json({ error: 'Erro ao excluir usuário' }, { status: 500 });
-  }
 }

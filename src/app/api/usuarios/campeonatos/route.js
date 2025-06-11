@@ -1,55 +1,58 @@
-// CÓDIGO PARA: src/app/api/campeonatos/route.js
-
-import clientPromise from '@/lib/mongodb';
 import { NextResponse } from 'next/server';
+import connectToDatabase from '@/lib/mongodb';
+import Campeonato from '@/models/Campeonato'; // Certifique-se que o caminho para seu modelo está correto
 
-// POST: Cria um novo campeonato
-export async function POST(req) {
-  const body = await req.json();
-  // Inclui todos os campos que definimos para campeonatos
-  const { 
-    nome_campeonato, nome_jogo, promotor_id, tipo, formato, 
-    max_participantes, valor_inscricao, premiacao, regras, 
-    data_inicio, data_fim, localizacao 
-  } = body;
-
-  // Validação simples dos campos
-  if (!nome_campeonato || !nome_jogo || !promotor_id || !tipo) {
-    return NextResponse.json({ error: 'Dados essenciais incompletos' }, { status: 400 });
-  }
+// Função para buscar um campeonato por ID
+export async function GET(request, { params }) {
+  const { id } = params;
 
   try {
-    const client = await clientPromise;
-    const db = client.db();
-    const campeonatos = db.collection('campeonatos');
+    await connectToDatabase();
+    const campeonato = await Campeonato.findById(id);
 
-    const novoCampeonato = {
-      ...body,
-      status: 'Inscrições Abertas', // Status inicial padrão
-      dataCriacao: new Date()
-    };
+    if (!campeonato) {
+      return NextResponse.json({ error: 'Campeonato não encontrado' }, { status: 404 });
+    }
 
-    await campeonatos.insertOne(novoCampeonato);
-
-    return NextResponse.json({ message: 'Campeonato criado com sucesso!' }, { status: 201 });
+    return NextResponse.json(campeonato);
   } catch (error) {
-    console.error('Erro ao criar campeonato:', error);
-    return NextResponse.json({ error: 'Erro interno do servidor' }, { status: 500 });
+    return NextResponse.json({ error: 'Erro ao buscar campeonato', details: error.message }, { status: 500 });
   }
 }
 
-// GET: Lista todos os campeonatos
-export async function GET() {
+// Função para atualizar um campeonato por ID
+export async function PUT(request, { params }) {
+    const { id } = params;
+    const body = await request.json();
+
+    try {
+        await connectToDatabase();
+        const updatedCampeonato = await Campeonato.findByIdAndUpdate(id, body, { new: true });
+
+        if (!updatedCampeonato) {
+            return NextResponse.json({ error: 'Campeonato não encontrado para atualização' }, { status: 404 });
+        }
+
+        return NextResponse.json(updatedCampeonato);
+    } catch (error) {
+        return NextResponse.json({ error: 'Erro ao atualizar campeonato', details: error.message }, { status: 500 });
+    }
+}
+
+// Função para deletar um campeonato por ID
+export async function DELETE(request, { params }) {
+  const { id } = params;
+
   try {
-    const client = await clientPromise;
-    const db = client.db();
-    const campeonatos = db.collection('campeonatos');
+    await connectToDatabase();
+    const deletedCampeonato = await Campeonato.findByIdAndDelete(id);
 
-    const listaCampeonatos = await campeonatos.find({}).toArray();
+    if (!deletedCampeonato) {
+      return NextResponse.json({ error: 'Campeonato não encontrado para exclusão' }, { status: 404 });
+    }
 
-    return NextResponse.json(listaCampeonatos, { status: 200 });
+    return NextResponse.json({ message: 'Campeonato deletado com sucesso' });
   } catch (error) {
-    console.error('Erro ao buscar campeonatos:', error);
-    return NextResponse.json({ error: 'Erro ao buscar campeonatos' }, { status: 500 });
+    return NextResponse.json({ error: 'Erro ao deletar campeonato', details: error.message }, { status: 500 });
   }
 }
