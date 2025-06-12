@@ -24,10 +24,10 @@ export async function middleware(request) {
 // Configuração para definir quais rotas serão protegidas pelo middleware
 export const config = {
   matcher: [
-    '/api/usuarios/campeonatos/:path*', // Protege criação e gestão de campeonatos
-    '/api/inscricoes/:path*',         // Protege rotas de inscrição
-    '/api/times/:path*',              // Protege criação e gestão de times
-    '/api/jogador/:path*',            // Protege painel do jogador
+    // '/api/usuarios/campeonatos/:path*', // ROTA COMENTADA/REMOVIDA
+    '/api/inscricoes/:path*',
+    '/api/times/:path*',
+    '/api/jogador/:path*',
     // Adicione aqui outras rotas que precisam de autenticação
   ],
 };
